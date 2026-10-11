@@ -6,14 +6,15 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-test('README 保持简洁，并围绕已验证的用户价值', () => {
+test('README stays concise and describes the reader workflow', () => {
   const readme = readFileSync(join(ROOT, 'README.md'), 'utf8');
-  for (const phrase of ['一键收集', '快速读懂', '集中管理', '持续沉淀', '高效回顾']) {
-    assert.ok(readme.includes(phrase), `README 缺少：${phrase}`);
+  for (const phrase of ['Collect', 'Understand', 'Organize', 'Keep', 'Review']) {
+    assert.ok(readme.includes(phrase), `README is missing: ${phrase}`);
   }
-  assert.ok(readme.split(/\r?\n/).length < 30, 'README 应保持产品首页式的简洁篇幅');
+  assert.equal(/[\u3400-\u9fff\uf900-\ufaff]/u.test(readme), false, 'README should use English throughout');
+  assert.ok(readme.split(/\r?\n/).length < 30, 'README should remain concise and suitable for the project homepage');
   for (const engineeringDetail of ['401', 'DPAPI', '最多 3 次', '受控商业 pilot']) {
-    assert.equal(readme.includes(engineeringDetail), false, `README 不应暴露工程细节：${engineeringDetail}`);
+    assert.equal(readme.includes(engineeringDetail), false, `README should omit internal implementation details: ${engineeringDetail}`);
   }
 });
 
