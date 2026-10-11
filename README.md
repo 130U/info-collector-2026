@@ -1,27 +1,27 @@
 # Info Collector
 
-**Turn saved articles into a searchable Chinese reading library.**
+**A complete browser-to-library workflow: capture articles, translate them into Chinese, and turn reading into a searchable personal knowledge archive.**
+把散落的网页与书签，整理为中文译文、摘要、标签、阅读进度与每周回顾。
 
-把散落在网页和书签里的内容，整理为中文译文、摘要、标签和可回顾的 Markdown 归档。
+[Public reading desk](https://info-collector-reading-desk.jiligualapiqiu.chatgpt.site/) · [Windows setup](SETUP-WINDOWS.md) · [Design](docs/design.md) · [Engineering evidence](docs/ENGINEERING_AUDIT.md)
 
-[公开阅读快照](https://info-collector-reading-desk.jiligualapiqiu.chatgpt.site/) · [Windows 安装](SETUP-WINDOWS.md) · [使用与运维](docs/OPERATIONS.md)
+The engineering contribution is a file-based processing protocol that connects a Chrome extension, a Python Native Messaging host, independent processing flows, and a static reading desk. The extension owns queue state; versioned outbox/inbox messages carry jobs and completion reports; atomic writes and acknowledgements make repeated delivery idempotent. New processing types enter through a registry, so article handling can expand without rewriting the queue state machine. This contract turns browser capture and local scripts into one coherent application.
 
-## 从采集到回顾
+- **一键收集**：save visible article text from the current tab or import a chosen bookmark folder, with normalized URLs and deduplication across active and archived records.
+- **快速读懂**：generate Chinese translations, summaries, and tags through the configured DeepSeek or Anthropic service; retain original links and resume long articles from segment checkpoints.
+- **集中管理**：inspect processing state in the Dashboard; search, filter, favorite, and track reading progress in the reading desk.
+- **持续沉淀**：save articles as local Markdown and generate a standalone HTML library with individual article pages, metadata, and source links.
+- **高效回顾**：generate weekly reading reviews from completed summaries and tags, with topic groupings and a daily reading calendar; this step requires no additional model call.
 
-- **一键收集**：保存当前网页可见正文，或从指定 Chrome 书签文件夹批量导入文章。
-- **快速读懂**：通过配置的模型服务生成中文译文、摘要和标签，保留原文链接。
-- **集中管理**：在 Dashboard 查看处理状态，在阅读桌搜索、筛选、收藏并标记阅读进度。
-- **持续沉淀**：把译文保存为本地 Markdown，生成带目录的静态阅读库。
-- **高效回顾**：按已完成文章的摘要与标签生成本周阅读回顾，无需再次调用模型。
+The storage design uses **32 hash buckets** for compact active metadata, with completed records moving into a local archive as quota pressure rises. Source capture, translation, queue recovery, and publication remain separate stages. Workers classify failures, enforce a finite retry budget, preserve progress, and return actionable status to the Dashboard. Windows-protected credentials, validated source URLs, and hash-pinned worker commands support the local deployment. These mechanisms are documented in [four architecture decision records](docs/adr/), with implementations in [queue logic](extension/lib/queue.js), [the Native Host](host/info_collector_host.py), and [the translation worker](flows/translate-claude-api.py).
 
-## 本地安装
+The project includes **14 Node/Python test files** covering queue transitions, import deduplication, codecs, host messaging, translation recovery, reader behavior, static generation, and weekly reports. Node runtime code and Python flows use built-in libraries. The [operations guide](docs/OPERATIONS.md) supplies release checks, failure-injection scenarios, and recovery procedures; `npm.cmd test` runs both language suites. The public reading desk is a generated snapshot of the same reading workflow.
 
-支持 Windows 11、Google Chrome 和 Python 3.9+；翻译需要自己的 DeepSeek 或 Anthropic API 凭据，正文会发送给配置的模型服务。
-
+## Install on Windows
+Requires Windows 11, Google Chrome, Python 3.9+, and your own model API credentials. Article text is sent to the configured translation provider; Markdown archives stay on your machine.
 ```powershell
 git clone https://github.com/130U/info-collector-2026.git
 cd info-collector-2026
 powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 ```
-
-安装后，在 Chrome 的 `chrome://extensions` 加载本仓库的 `extension` 文件夹，按[安装指南](SETUP-WINDOWS.md)完成首次采集与处理。文章归档保存在本机；活跃队列元数据使用 Chrome 同步存储。在线阅读桌展示公开静态快照；macOS/Linux 与播客脚本保留为开发工具。
+Load `extension/` through `chrome://extensions`, then follow the [first-run guide](SETUP-WINDOWS.md). [Apache 2.0 license](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)
