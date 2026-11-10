@@ -1,10 +1,8 @@
-# 工程审计
+# 工程架构与验证
 
-审计日期：2026-08-10。范围：扩展、Native Messaging host、翻译/生成流程、静态阅读站、安装脚本与 CI。
+范围：扩展、Native Messaging host、翻译/生成流程、静态阅读站、安装脚本与 CI。
 
-## 结论
-
-当前版本适合作为受控商业 pilot 的发布候选：未发现已知 Critical/High 级问题，核心失败可分类、重试有上限、状态可恢复。它仍不是通用绕过器、翻译质量担保或合规认证；上线方应按 `docs/OPERATIONS.md` 的 SLI、回滚和人工抽检门槛运行。
+当前支持环境为 Windows 11、Chrome 和 Python 3.9+。失败分类、有界重试与状态恢复属于运行契约。部署与人工抽检遵循 [OPERATIONS.md](OPERATIONS.md) 的 SLI、回滚和检查门槛。
 
 ## 结构与扩展点
 
@@ -30,10 +28,23 @@
 
 ## 冗余与维护性
 
-- 删除了 8 个无代码或文档引用的旧 README 图片资产。
 - `reader/assets/*` 是前端源文件；`site/public/assets/*` 是可部署快照。两者由刷新脚本同步并由测试校验，属于受控构建产物。
 - Node 侧无第三方运行时依赖；Python 流程使用标准库。CI 同时覆盖 Windows、Ubuntu、静态站构建与安全契约。
 
 ## 发布门槛
 
 每次发布必须通过 `npm.cmd test`、Python 编译、公开站生成一致性检查和凭据/危险 API 静态扫描。变更抓取、翻译或隐私隔离逻辑时，必须执行 `docs/OPERATIONS.md` 中的故障注入与回滚演练。
+
+## 队列与持久化契约
+
+Chrome 书签提供导入来源；处理状态属于扩展。文章身份来自标准化 URL，书签移动或删除不会撤销已完成状态。
+
+活跃记录压缩后按 `articleKey` 哈希放入 32 个 `chrome.storage.sync` 桶。所有 job 完成且 30 天未更新的记录进入 `chrome.storage.local` 归档；sync 用量超过 80% 时提前归档最旧的已完成记录。导入同时查询活跃桶与本机归档。只有活跃记录跨设备同步；本机归档不跨设备，外部流程的已报告清单提供另一层去重。
+
+## 文件桥接与流程触发
+
+扩展经 Native Messaging host 交换 `outbox/<type>.json` 与 `inbox/` Completion Report。报告应用幂等，确认后归档；处理状态语义留在扩展中。Dashboard 的手动标记和批量导入可独立使用。
+
+Dashboard 按 `processingType` 触发 `~/.info-collector/flows.json` 中注册的命令。扩展不能传命令或参数；host 校验受信目录与脚本哈希，通过参数数组启动进程，并用 lockFile 检测运行状态。结果沿 Completion Report 返回。手动触发的 `--manual` 标记保持定时锚点 `lastScheduledStartAt` 不变。
+
+触发粒度是处理类型：一次流程消费该类型 outbox 中全部未报告文章。运行状态来自 lockFile 与 `state/<type>-status.json`；它是流程状态快照，不替代逐文章完成报告。

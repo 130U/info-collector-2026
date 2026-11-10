@@ -23,4 +23,4 @@ cd info-collector-2026
 powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 ```
 Load `extension/` in `chrome://extensions`, then follow the [first-run guide](SETUP-WINDOWS.md).
-[Design](docs/design.md) · [Operations](docs/OPERATIONS.md) · [Apache 2.0 license](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)
+[Architecture](docs/ARCHITECTURE.md) · [Design](docs/design.md) · [Operations](docs/OPERATIONS.md) · [Support matrix](docs/SUPPORT.md) · [Podcast flow](docs/PODCAST.md) · [Apache 2.0 license](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)
