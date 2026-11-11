@@ -19,4 +19,4 @@ New Windows installs store model API keys with current-user DPAPI. `config.json`
 
 ## Deployment responsibilities
 
-Before a commercial deployment, add network-level egress controls, review source licenses/terms, define retention and deletion rules, restrict filesystem ACLs, and run the fault-injection checklist in [docs/OPERATIONS.md](docs/OPERATIONS.md). The project does not claim universal source authorization or global privacy compliance.
+Before a commercial deployment, add network-level egress controls, review source licenses/terms, define retention and deletion rules, restrict filesystem ACLs, and run the fault-injection checklist in [docs/OPERATIONS.md](../docs/OPERATIONS.md). The project does not claim universal source authorization or global privacy compliance.

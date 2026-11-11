@@ -41,7 +41,7 @@ try:
     from info_collector_platform import release_lock, user_home
     from credential_store import load_credential
 except ModuleNotFoundError:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lib"))
     from info_collector_platform import acquire_lock as acquire_file_lock
     from info_collector_platform import release_lock, user_home
     from credential_store import load_credential

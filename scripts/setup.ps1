@@ -154,8 +154,8 @@ Copy-Item -LiteralPath (Join-Path $Repo "flows\generate-weekly-report.py") -Dest
 Copy-Item -LiteralPath (Join-Path $Repo "flows\generate-reading-site.py") -Destination $ReadingSiteBin -Force
 Copy-Item -Path (Join-Path $Repo "reader\assets\*") -Destination $ReaderAssetsDir -Force
 Copy-Item -LiteralPath (Join-Path $Repo "host\info_collector_host.py") -Destination $HostBin -Force
-Copy-Item -LiteralPath (Join-Path $Repo "info_collector_platform.py") -Destination $CompatBin -Force
-Copy-Item -LiteralPath (Join-Path $Repo "credential_store.py") -Destination $CredentialBin -Force
+Copy-Item -LiteralPath (Join-Path $Repo "lib/info_collector_platform.py") -Destination $CompatBin -Force
+Copy-Item -LiteralPath (Join-Path $Repo "lib/credential_store.py") -Destination $CredentialBin -Force
 
 Write-Host "== 3/5 配置翻译引擎"
 $config = Read-JsonMap -Path $ConfigPath

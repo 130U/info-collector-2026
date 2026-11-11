@@ -2,7 +2,7 @@
 
 **Turn saved articles into a Chinese reading library you can search, revisit, and keep.**
 
-[Open the reading desk](https://info-collector-reading-desk.jiligualapiqiu.chatgpt.site/) · [Windows setup](SETUP-WINDOWS.md)
+[Open the reading desk](https://info-collector-reading-desk.jiligualapiqiu.chatgpt.site/) · [Windows setup](docs/SETUP-WINDOWS.md)
 
 Info Collector connects the moment you save an article with the moment you read it again. A Chrome extension captures pages and bookmarks; local processing turns them into Chinese translations, summaries, and tags; a reading desk brings the collection together.
 
@@ -22,5 +22,5 @@ git clone https://github.com/130U/info-collector-2026.git
 cd info-collector-2026
 powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 ```
-Load `extension/` in `chrome://extensions`, then follow the [first-run guide](SETUP-WINDOWS.md).
-[Architecture](docs/ARCHITECTURE.md) · [Design](docs/design.md) · [Operations](docs/OPERATIONS.md) · [Support matrix](docs/SUPPORT.md) · [Podcast flow](docs/PODCAST.md) · [Apache 2.0 license](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)
+Load `extension/` in `chrome://extensions`, then follow the [first-run guide](docs/SETUP-WINDOWS.md).
+[Architecture](docs/ARCHITECTURE.md) · [Design](docs/design.md) · [Operations](docs/OPERATIONS.md) · [Support matrix](docs/SUPPORT.md) · [Podcast flow](docs/PODCAST.md) · [Apache 2.0 license](LICENSE) · [Third-party notices](docs/THIRD_PARTY_NOTICES.md)

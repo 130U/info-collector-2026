@@ -1,54 +1,34 @@
-# Article Queue Extension — v1 设计
+# Article Queue Extension — 设计
 
-本文是 v1 的总体设计。领域语言见 `../CONTEXT.md`，关键决策见 `adr/`。
+本文描述系统的总体设计。领域语言见 [CONTEXT.md](CONTEXT.md)，模块结构见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
 ## 总体架构
 
-```
-┌─────────────── Chrome ────────────────┐        ┌────────── macOS ──────────┐
-│                                        │        │                            │
-│  书签文件夹「收藏文章」 (Bookmark Source) │        │  launchd 定时任务           │
-│        │ chrome.bookmarks (只读)        │        │  (translate 流，未来更多流)  │
-│        ▼                               │        │      ▲            │        │
-│  Service Worker ──── chrome.storage ───│        │  读 outbox/    写 inbox/    │
-│   导入 / 桥接 / 状态机     sync + local   │        │      │            │        │
-│        │                               │        │      ▼            ▼        │
-│        │ Native Messaging              │        │   ~/.info-collector/        │
-│        └────────► host (python) ◄──────┼────────┤   outbox/  inbox/  spool   │
-│                                        │        │                            │
-│  Dashboard 页 + Toolbar Popup           │        └────────────────────────────┘
-└────────────────────────────────────────┘
-```
+系统组件与 Windows 安装结构见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
 三个角色：
 
-1. **扩展**（MV3）：队列的唯一事实来源（ADR 0001）。从书签文件夹只读导入，
+1. **扩展**（MV3）：队列的唯一事实来源。从书签文件夹只读导入，
    维护每篇文章按 Processing Type 分桶的状态，提供 Dashboard 管理界面。
 2. **Native host**（`host/info_collector_host.py`）：哑文件搬运工。扩展通过
    Native Messaging 调它，它负责把待处理清单写到 outbox、把 inbox 里的
-   Completion Report 读回来。不含业务逻辑（ADR 0002）。
-3. **外部处理流**：普通本机脚本（如 launchd 的 translate 流）。只跟
+   Completion Report 读回来。不含业务逻辑。
+3. **外部处理流**：普通本机脚本（如 translate 流）。只跟
    `~/.info-collector/` 文件打交道，完全不需要知道 Chrome 的存在。
 
-## 已定决策一览
+## 设计约定
 
-| 决策 | 结论 | 出处 |
-|---|---|---|
-| 事实来源 | 扩展自有存储，书签只是导入源 | ADR 0001 |
-| 书签写权限 | v1 完全不动书签，manifest 只读 | 访谈确认 |
-| 首个 Processing Type | `translate`（类型是数据注册表，不是硬编码） | 见下文说明 |
-| 外部流集成方式 | 文件 spool 契约 + Native Messaging 桥 | ADR 0002 |
-| sync 存储布局 | 分桶存储 + local 归档 | ADR 0003 |
-| URL 归一化 | 保守：小写协议/主机、去 hash、暂不去 utm_* | 见下文 |
-| Toolbar 直接保存 | v1 包含（popup 一键入队当前标签页） | 访谈推荐 |
-| Dashboard | 扩展内页面（chrome-extension://…/dashboard.html） | 访谈推荐 |
-| 立即触发流程 | host + flows.json 命令注册表，Dashboard「▶ 立即处理」 | ADR 0004 |
-
-**关于 `translate` 取代先前的 `default`**：访谈早期曾定 v1 内部用 `default`。
-之后用户补充了关键上下文——现有 launchd 翻译流之外，将来还会有「视频/播客文稿」
-「书籍下载」等彼此独立的处理流。既然每条流就是一个独立的 Processing Type，
-第一个类型如实命名为 `translate` 比抽象的 `default` 更准确；类型注册表本身
-就是预留的扩展口（新流 = 注册表加一条数据，不改代码）。
+| 约定 | 实现 |
+|---|---|
+| 事实来源 | 扩展自有存储，书签只是导入源 |
+| 书签写权限 | 不写入书签，manifest 只读 |
+| Processing Type | `translate` 是文章翻译类型，类型由注册表定义 |
+| 外部流集成方式 | 文件 spool 契约 + Native Messaging 桥 |
+| sync 存储布局 | 分桶存储 + local 归档 |
+| URL 归一化 | 小写协议/主机、去 hash、保留 utm_* |
+| Toolbar 直接保存 | popup 一键入队当前标签页 |
+| Dashboard | 扩展内页面（chrome-extension://…/dashboard.html） |
+| 立即触发流程 | host + flows.json 命令注册表，Dashboard「▶ 立即处理」 |
 
 ## 数据模型
 
@@ -109,7 +89,7 @@
 4. 空路径归一为 `/`（`https://a.com` ≡ `https://a.com/`），其余路径的尾斜杠**保留原样**；
 5. 保留全部 query 参数（含 `utm_*`，除非用户以后明确要去）。
 
-## 存储布局（ADR 0003 摘要）
+## 存储布局
 
 - `chrome.storage.sync`：活跃记录，32 个桶键 `aq:b:00`…`aq:b:1f`
   （articleKey 的 FNV-1a hash 取模），桶内是 articleKey → 压缩记录的 map；
@@ -120,7 +100,7 @@
 - 归档触发：所有 job 均为 done/ignored 且 30 天未更新，或 sync 用量超 80% 时
   从最旧的已完成记录开始迁移。导入去重同时查活跃桶和归档。
 
-## Spool 文件契约（ADR 0002 摘要）
+## Spool 文件契约
 
 根目录 `~/.info-collector/`：
 
@@ -161,7 +141,7 @@ state/<type>-trigger.log   手动触发的流程输出。
 - 桥接会话：connectNative → 发送 `sync`（携带各类型 outbox 内容 + 上次
   已应用报告的 ack）→ host 写 outbox、移走已 ack 报告、返回 inbox 新报告
   与各流程运行状态 → 扩展应用 → 断开。
-- 立即触发（ADR 0004）：Dashboard 待处理行的「▶ 立即处理」= 先桥接刷新
+- 立即触发：Dashboard 待处理行的「▶ 立即处理」= 先桥接刷新
   outbox，再发 `trigger` 让 host 按 flows.json 启动该类型流程（队列级，
   会处理该类型全部待处理文章），随后安排 3/8 分钟后的跟进桥接尽快收报告。
   状态区显示各流程：运行中 / 上次结果（手动或定时）/ 预计下次定时运行时间
@@ -169,8 +149,8 @@ state/<type>-trigger.log   手动触发的流程输出。
 
 ## 翻译流的两个实现
 
-`flows/` 提供两个满足同一 spool 契约的 translate 流，`scripts/setup.sh`
-默认为普通用户安装通用版：
+`flows/` 提供两个满足同一 spool 契约的 translate 流，`scripts/setup.ps1`
+在 Windows 上安装通用版：
 
 - **`translate-claude-api.py`（通用，随仓库分发）**：纯 Python 标准库支持
   DeepSeek API 和 Claude API。两条 provider 路径共享同一份已验证正文：显式用户
@@ -181,26 +161,23 @@ state/<type>-trigger.log   手动触发的流程输出。
 - **`translate-bookmarks.py`（作者个人流）**：调 `pi` CLI +
   translate-article skill 存入 Obsidian，`scripts/setup-pi-flow.sh` 安装。
 
-## 外部流改造：translate
+## translate 流
 
-`flows/translate-bookmarks.py` 取代 `~/.pi/scripts/translate-bookmarks.py`：
+`flows/translate-bookmarks.py` 按以下流程处理文章：
 
-- **删除**全部 Chrome Bookmarks 文件读写（原脚本直改文件的行为正是事故根源）。
+- 不读写 Chrome Bookmarks 文件。
 - 读 `outbox/translate.json`；跳过本地 `state/translate-reported.json` 里
   已报告过的 URL（防 outbox 未刷新时重复翻译）。
-- 照旧调 `pi -p` + translate-article skill。
+- 调用 `pi -p` + translate-article skill。
 - 成功后原子写 inbox 报告，更新本地已报告清单，追加 action-history。
-- outbox 不存在时打日志静默退出（扩展尚未装好时的过渡行为）。
-
-历史迁移：`scripts/setup-pi-flow.sh` 把现有 `translated-urls.json` 转成一份
-inbox 报告，扩展首次桥接时即把它们记为 done。
+- outbox 不存在时打日志静默退出。
 
 ## Dashboard / Popup
 
 - **dashboard.html**：状态计数、sync 配额条、按状态/类型过滤、搜索；
   行内操作：标记完成、忽略、重新排队、删除；全局操作：立即导入、立即同步、
   生成并打开静态阅读库、生成周报、批量粘贴已完成 URL（自动化桥失效时的手动兜底）、导出 JSON；
-  设置区：书签文件夹名、新增 Processing Type（v1 只增不删）。
+  设置区：书签文件夹名、新增 Processing Type（只增不删）。
 - **popup**：显示当前标签页入队状态。用户点击保存时，从当前标签页提取可见文章正文，
   排除导航、表单、账户控件和常见样板，再经 Native Host 写入有界本地快照；不复制 Cookie、
   Authorization 或密码。受限来源可通过这一显式手势重新排队。
@@ -213,13 +190,12 @@ Markdown，确定性生成 `阅读站/index.html`、`阅读站/articles/*.html` 
 - 索引页按精选、恢复队列、主题与最近收录组织；登录页/受限来源不会混入可信译文；
 - 单篇页按关键词 → Summary → 中文译文 → 原文链接的阅读顺序组织；
 - Markdown 原始 HTML 一律转义，外链只允许 `http` / `https`；
-- 缺少旧版 Summary/Tags 时，用正文首段与固定关键词规则生成展示兜底；
+- 文章缺少 Summary/Tags 时，用正文首段与固定关键词规则生成展示兜底；
 - 不需要数据库或 Web 服务，输出可通过 `file://` 直接打开；
 - `reading-site` 注册在 `flows.json`，Dashboard 触发后生成并打开默认浏览器。
 
-## v1 明确不做
+## 系统边界
 
 - 写书签（归档/删除导入过的书签）。
 - Processing Type 的删除/改名。
 - 在扩展存储中保存文章正文（扩展只存元数据；正文由本地流写入 Markdown）。
-- 除 translate 外其他流的脚本实现（只保证契约就绪）。

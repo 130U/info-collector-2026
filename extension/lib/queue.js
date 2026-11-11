@@ -1,5 +1,5 @@
 // 队列状态机：纯函数，不碰 chrome API，可在 node 下直接测试。
-// 语义见 CONTEXT.md 与 docs/design.md。
+// 语义见 docs/CONTEXT.md 与 docs/design.md。
 
 import { normalizeSummaryTags } from './enrichment.js';
 

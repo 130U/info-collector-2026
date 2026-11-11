@@ -23,7 +23,7 @@ from urllib.parse import urlparse
 try:
     from info_collector_platform import lock_is_held, user_home
 except ModuleNotFoundError:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lib"))
     from info_collector_platform import lock_is_held, user_home
 
 
